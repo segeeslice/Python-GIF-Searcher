@@ -31,7 +31,7 @@ def createFramesArray(imgData):
     return array
 
 # Test image url
-url = "https://media1.giphy.com/media/FA8Ox4VeQM8rm/giphy.gif"
+url = "https://media2.giphy.com/media/3ohhwfrQfFHsdL2ILK/giphy.gif"
 
 # Open the given URL into a data string
 image_string = urlopen(url).read()
@@ -41,24 +41,27 @@ image_b64 = base64.encodestring(image_string)
 
 # Gather array of frames in the gif
 frames = createFramesArray(image_b64)
+frame = 0 # Current frame
+frameNum = len(frames) - 1
 
 # Create canvas to hold image
 canvas = tk.Canvas(bg="white", relief="raised")
 canvas.pack(side='top', fill='both', expand='yes')
 
-global frame
-frame = 0
 
-# Create the image on the canvas
-# NOTE: Temporarily just displays the first frame
+# Update the image on the canvas with the next frame
 def updateImage():
-    frame += 1
+    global frame
+    global frameNum
+    global canvas
+    global root
+
     canvas.create_image(10, 10, image=frames[frame], anchor='nw')
+    frame = frame + 1 if frame < frameNum else 0
+    root.after(50, updateImage)
 
-
-canvas.create_image(10, 10, image=frames[frame], anchor='nw')
-root.after(200, updateImage())
-
-
+# canvas.create_image(10, 10, image=frames[frame], anchor='nw')
+# Begin the animation updates
+root.after(500, updateImage)
 
 root.mainloop()

@@ -49,6 +49,10 @@ class App():
                 print("Unexpected error: ", lastError)
                 break
 
+        # Change canvas size to be the size of this gif
+        w, h = self.frames[0].width(), self.frames[0].height()
+        self.canvas.config(width = w, height = h)
+
         # Reset gif looping variables
         self.frameSize = len(self.frames)
         self.frameIndex = 0
@@ -61,7 +65,7 @@ class App():
 
         # Display this frame
         # Layers frames on top of each other
-        self.canvas.create_image(10, 10, image=self.frames[self.frameIndex], anchor='nw')
+        self.canvas.create_image(0, 0, image=self.frames[self.frameIndex], anchor='nw')
 
         # Increment frame index and call this again after increment
         self.frameIndex = self.frameIndex + 1 if self.frameIndex < self.frameSize-1 else 0

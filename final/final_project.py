@@ -3,73 +3,86 @@ import base64
 from urllib.request import urlopen
 import sys
 
-# Initialize the Tkinter object we will be working with
-root = tk.Tk()
+class App():
+    def __init__(self):
+        self.root = tk.Tk() # Base Tkinter object
+        self.imgData = ""   # Base 64 gif data for displaying
 
-# Returns an array of all frames of given base 64 image data
-def createFramesArray(imgData):
-    print ("Getting file frames...")
-    array = [] # Array of frames we will be working with
-    index = 0  # Current frame index
+        self.frames = []    # Array of imgData frames
+        self.frameIndex = 0 # Current displayed frame index
+        self.frameSize = 0  # Size of frames
+        self.frameRate = int(1/30 * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
 
-    # Create an array of frames of a gif
-    # Only exits when reaches end of frames (raises exception)
-    while True:
-        try:
-            # Get this gif index's frame
-            array.append(tk.PhotoImage(data=imgData, format="gif -index " + str(index)))
-            index += 1
-        except tk._tkinter.TclError as e:
-            # This exception is expected at end of file
-            print("Reached end of frames")
-            break
-        except:
-            lastError = sys.exc_info()[0]
-            print("Unexpected error: ", lastError)
-            break
+        # TKinter canvas to hold image
+        self.canvas = tk.Canvas(bg="white", relief="raised")
+        self.canvas.pack(side='top', fill='both', expand='yes')
 
-    return array
+        self.stopFlag = False # Flag for stopping the url loop
 
-# Test image url
-url = "https://media2.giphy.com/media/57Y0HrGWcu4WYvc6vE/giphy.gif"
+    # Set the image data from the given URL
+    def setImgFromURL(self, url):
+        # Open the given URL into a data string
+        image_string = urlopen(url).read()
+        # Parse the data string into base 64 for reading
+        self.imgData = base64.encodestring(image_string)
 
-# Open the given URL into a data string
-image_string = urlopen(url).read()
-# Parse the data string into base 64 for reading
-image_b64 = base64.encodestring(image_string)
+    # Set the frame array using the data from imgData
+    def createFramesArray(self):
+        self.stopFlag = True # Stop gif looping if necessary
+        print ("Getting file frames...")
+        self.frames = [] # Reset frames variables
+        index = 0  # Current frame index
+
+        # Create an array of frames of a gif
+        # Only exits when reaches end of frames (raises exception)
+        while True:
+            try:
+                # Get this gif index's frame
+                self.frames.append(tk.PhotoImage(data=self.imgData, format="gif -index " + str(index)))
+                index += 1
+            except tk._tkinter.TclError as e:
+                # This exception is expected at end of file
+                print("Reached end of frames")
+                break
+            except:
+                lastError = sys.exc_info()[0]
+                print("Unexpected error: ", lastError)
+                break
+
+        # Reset gif looping variables
+        self.frameSize = len(self.frames)
+        self.frameIndex = 0
+        self.stopFlag = False
+
+    # Update the image on the canvas with the next frame
+    def updateImage(self):
+        if self.stopFlag == True: return # Exit if stop flag is set
+        if self.frameIndex == 0: self.canvas.delete("all") # Clear the canvas of all images if first frame
+
+        # Display this frame
+        # Layers frames on top of each other
+        self.canvas.create_image(10, 10, image=self.frames[self.frameIndex], anchor='nw')
+
+        # Increment frame index and call this again after increment
+        self.frameIndex = self.frameIndex + 1 if self.frameIndex < self.frameSize-1 else 0
+        self.root.after(self.frameRate, self.updateImage)
+
+    # ----- ABSTRACTION -----
+
+    # Load image to app given a url
+    def loadImage(self, url):
+        self.setImgFromURL(url)
+        self.createFramesArray()
+
+    # Run the application
+    def run(self):
+        self.root.after(500, self.updateImage)
+        self.root.mainloop()
 
 
-# Gather array of frames in the gif
-frames = createFramesArray(image_b64)
-frame = 0 # Current frame
-frameNum = len(frames) - 1
-FRAME_INCREMENT = int(1/30 * 1000) # Number of milliseconds to break for 30 fps
+# Run the app
+testURL = "https://media2.giphy.com/media/57Y0HrGWcu4WYvc6vE/giphy.gif"
 
-# Create canvas to hold image
-canvas = tk.Canvas(bg="white", relief="raised")
-canvas.pack(side='top', fill='both', expand='yes')
-
-
-# Update the image on the canvas with the next frame
-def updateImage():
-    global frame
-    global frameNum
-    global canvas
-    global root
-    global FRAME_INCREMENT
-
-    if frame == 0: canvas.delete("all") # Clear the canvas of all images if first frame
-
-    # Display this frame
-    # Layers frames on top of each other
-    canvas.create_image(10, 10, image=frames[frame], anchor='nw')
-
-    # Increment frame index and call this again after increment
-    frame = frame + 1 if frame < frameNum else 0
-    root.after(FRAME_INCREMENT, updateImage)
-
-# canvas.create_image(10, 10, image=frames[frame], anchor='nw')
-# Begin the animation updates
-root.after(500, updateImage)
-
-root.mainloop()
+ourApp = App()
+ourApp.loadImage(testURL)
+ourApp.run()

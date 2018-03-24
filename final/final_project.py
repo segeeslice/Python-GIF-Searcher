@@ -6,6 +6,7 @@ import sys
 class App():
     def __init__(self):
         self.root = tk.Tk() # Base Tkinter object
+        self.root.title("The Python GIF Searcher")
         self.imgData = ""   # Base 64 gif data for displaying
 
         self.frames = []    # Array of imgData frames
@@ -14,8 +15,22 @@ class App():
         self.frameRate = int(1/30 * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
 
         # TKinter canvas to hold image
-        self.canvas = tk.Canvas(bg="white", relief="raised")
-        self.canvas.pack(side='top', fill='both', expand='yes')
+        self.canvas = tk.Canvas(self.root, bg="white", relief="raised")
+        self.canvas.grid(row = 0, column = 3, rowspan = 1000, padx = 5, pady = 5)
+        # self.canvas.pack(side='right', fill='both', expand='yes')
+
+        self.buttonPlay = tk.Button(self.root, text = "Pause GIF", command=self.toggleLoop)
+        self.buttonPlay.grid(row = 0, column = 0, columnspan = 3, sticky="nw", padx = 5, pady = 5)
+        # self.buttonPlay.pack(side='left')
+
+        self.labelURL = tk.Label(self.root, text="Image URL:")
+        self.labelURL.grid(row = 1, column = 0, sticky="nw", padx = 5, pady = 5)
+
+        self.entryURL = tk.Entry(self.root)
+        self.entryURL.grid(row = 1, column = 1, sticky="nw", padx = 5, pady = 5)
+
+        self.buttonURL = tk.Button(self.root, text = "Submit", command=self.changeURL)
+        self.buttonURL.grid(row = 1, column = 2, sticky="nw", padx = 5, pady = 5)
 
         self.stopFlag = False # Flag for stopping the url loop
 
@@ -70,6 +85,23 @@ class App():
         # Increment frame index and call this again after increment
         self.frameIndex = self.frameIndex + 1 if self.frameIndex < self.frameSize-1 else 0
         self.root.after(self.frameRate, self.updateImage)
+
+    # ----- WIDGET COMMANDS -----
+
+    def toggleLoop(self):
+        # Toggle stop flag to stop the GIF playing if necessary
+        self.stopFlag = not self.stopFlag
+
+        # Change button text depending on if the GIF is playing or not
+        buttonText = "Play GIF" if self.stopFlag else "Pause GIF"
+        self.buttonPlay.config(text = buttonText)
+
+        # Start the animation again if necessary
+        if not self.stopFlag: self.updateImage()
+
+    def changeURL(self):
+        url = self.entryURL.get()
+        self.loadImage(url)
 
     # ----- ABSTRACTION -----
 

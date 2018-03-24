@@ -31,7 +31,7 @@ def createFramesArray(imgData):
     return array
 
 # Test image url
-url = "https://media2.giphy.com/media/3ohhwfrQfFHsdL2ILK/giphy.gif"
+url = "https://media2.giphy.com/media/57Y0HrGWcu4WYvc6vE/giphy.gif"
 
 # Open the given URL into a data string
 image_string = urlopen(url).read()
@@ -43,6 +43,7 @@ image_b64 = base64.encodestring(image_string)
 frames = createFramesArray(image_b64)
 frame = 0 # Current frame
 frameNum = len(frames) - 1
+FRAME_INCREMENT = int(1/30 * 1000) # Number of milliseconds to break for 30 fps
 
 # Create canvas to hold image
 canvas = tk.Canvas(bg="white", relief="raised")
@@ -55,6 +56,7 @@ def updateImage():
     global frameNum
     global canvas
     global root
+    global FRAME_INCREMENT
 
     if frame == 0: canvas.delete("all") # Clear the canvas of all images if first frame
 
@@ -64,7 +66,7 @@ def updateImage():
 
     # Increment frame index and call this again after increment
     frame = frame + 1 if frame < frameNum else 0
-    root.after(50, updateImage)
+    root.after(FRAME_INCREMENT, updateImage)
 
 # canvas.create_image(10, 10, image=frames[frame], anchor='nw')
 # Begin the animation updates

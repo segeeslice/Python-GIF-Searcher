@@ -12,7 +12,7 @@ def createFramesArray(imgData):
     array = [] # Array of frames we will be working with
     index = 0  # Current frame index
 
-    # Create an array of frames
+    # Create an array of frames of a gif
     # Only exits when reaches end of frames (raises exception)
     while True:
         try:
@@ -56,7 +56,13 @@ def updateImage():
     global canvas
     global root
 
+    if frame == 0: canvas.delete("all") # Clear the canvas of all images if first frame
+
+    # Display this frame
+    # Layers frames on top of each other
     canvas.create_image(10, 10, image=frames[frame], anchor='nw')
+
+    # Increment frame index and call this again after increment
     frame = frame + 1 if frame < frameNum else 0
     root.after(50, updateImage)
 

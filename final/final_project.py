@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 import base64
 from urllib.request import urlopen
 import sys
@@ -86,6 +87,18 @@ class App():
         self.frameIndex = self.frameIndex + 1 if self.frameIndex < self.frameSize-1 else 0
         self.root.after(self.frameRate, self.updateImage)
 
+    # Display a dialog window containing given information
+    # Mode can be info, warning, or error
+    def displayMessage(self, title, contents, mode):
+        if mode == 'info':
+            tk.messagebox.showinfo(title, contents)
+        elif mode == 'warning':
+            tk.messagebox.showwarning(title, contents)
+        elif mode == 'error':
+            tk.messagebox.showerror(title, contents)
+        else:
+            print("Could not display message of unknown type: " + mode)
+
     # ----- WIDGET COMMANDS -----
 
     def toggleLoop(self):
@@ -100,6 +113,10 @@ class App():
         if not self.stopFlag: self.updateImage()
 
     def changeURL(self):
+        messageTitle = "GIF Submitted"
+        messageContents = "We will now load your new GIF. This may take a few seconds, and your program may become unresponsive."
+        self.displayMessage(messageTitle, messageContents, 'info')
+
         url = self.entryURL.get()
         self.loadImage(url)
 

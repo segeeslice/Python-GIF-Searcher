@@ -16,36 +16,43 @@ class App():
         self.frameSize = 0  # Size of frames
         self.frameRate = int(1/30 * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
 
-        # TKinter canvas to hold image
-        self.canvas = tk.Canvas(self.root, bg="white", relief="raised")
-        self.canvas.grid(row = 0, column = 3, rowspan = 1000, padx = 5, pady = 5)
-
-        self.buttonPlay = tk.Button(self.root, text = "Pause GIF", command=self.toggleLoop)
-        self.buttonPlay.grid(row = 0, column = 0, columnspan = 3, sticky="nw", padx = 5, pady = 5)
-
-        self.labelSearch = tk.Label(self.root, text="Search Giphy:")
-        self.labelSearch.grid(row = 1, column = 0, sticky="nw", padx = 5, pady = 5)
-
-        self.entrySearch = tk.Entry(self.root)
-        self.entrySearch.grid(row = 1, column = 1, sticky="nw", padx = 5, pady = 5)
-
-        self.buttonSearch = tk.Button(self.root, text = "Submit", command=self.search)
-        self.buttonSearch.grid(row = 1, column = 2, sticky="nw", padx = 5, pady = 5)
-
-        self.searchOffset = 0
-
-        # TODO: Button next and previous
-
-        self.labelSpeed = tk.Label(self.root, text = "GIF Speed (fps):")
-        self.labelSpeed.grid(row = 2, column = 0, sticky="w")
-
-        self.scaleSpeed = tk.Scale(self.root, from_ = 1, to = 120, orient = "horizontal")
-        self.scaleSpeed.grid(row = 2, column = 1, sticky = "nw")
-
-        self.buttonSpeed = tk.Button(self.root, text = "Submit", command = self.changeSpeed)
-        self.buttonSpeed.grid(row = 2, column = 2, sticky = "w")
+        self.searchText = ""  # Current GIF search
+        self.searchOffset = 0 # Current GIF offset
 
         self.stopFlag = False # Flag for stopping the url loop
+
+        # ----- TKINTER WIDGETS -----
+        # Canvas to hold the GIF
+        self.canvas = tk.Canvas(self.root, bg="white", relief="raised")
+
+        # Play / pause button
+        self.buttonPlay = tk.Button(self.root, text = "Pause GIF", command=self.toggleLoop)
+
+        # Search box with label and submission button
+        self.labelSearch = tk.Label(self.root, text="Search Giphy:")
+        self.entrySearch = tk.Entry(self.root)
+        self.buttonSearch = tk.Button(self.root, text = "Submit", command=self.search)
+
+        # Look at different GIFs in search list
+        self.buttonPrev = tk.Button(self.root, text="Previous GIF", command=self.prevGIF, state="disabled")
+        self.buttonNext = tk.Button(self.root, text="Next GIF", command=self.nextGIF)
+
+        # Speed slider with label and submission button
+        self.labelSpeed = tk.Label(self.root, text = "GIF Speed (fps):")
+        self.scaleSpeed = tk.Scale(self.root, from_ = 1, to = 120, orient = "horizontal")
+        self.buttonSpeed = tk.Button(self.root, text = "Submit", command = self.changeSpeed)
+
+        # ----- GRID SETTINGS -----
+        self.canvas.grid      (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000)
+        self.buttonPlay.grid  (row = 0, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.labelSearch.grid (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.entrySearch.grid (row = 1, column = 1, padx = 5, pady = 5, sticky="nw")
+        self.buttonSearch.grid(row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
+        self.buttonPrev.grid  (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
+        self.buttonNext.grid  (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
+        self.labelSpeed.grid  (row = 3, column = 0, padx = 5, pady = 5, sticky="w")
+        self.scaleSpeed.grid  (row = 3, column = 1, padx = 5, pady = 5, sticky="nw")
+        self.buttonSpeed.grid (row = 3, column = 2, padx = 5, pady = 5, sticky="w")
 
     # Set the image data from the given URL
     def setImgFromURL(self, url):
@@ -131,15 +138,29 @@ class App():
 
         self.loadImage(url)
 
-    def search(self):
+    def search(self, oldSearch = False):
         global API
-        search = self.entrySearch.get().replace(" ", "+")
-        url = "http://api.giphy.com/v1/gifs/search?q="+search+"&api_key="+API+"&limit=1&offset="+str(self.searchOffset)
+
+        if not oldSearch:
+            self.searchText = self.entrySearch.get().replace(" ", "+")
+            self.searchOffset = 0
+
+        url = "http://api.giphy.com/v1/gifs/search?q="+self.searchText+"&api_key="+API+"&limit=1&offset="+str(self.searchOffset)
         urlData = urlopen(url).read()
         jsonData = json.loads(urlData)
 
         urlGif = jsonData["data"][0]["images"]["original"]["url"]
         self.changeURL(urlGif)
+
+    def nextGIF(self):
+        self.searchOffset += 1
+        self.search(oldSearch = True)
+        self.buttonPrev.config(state="normal")
+
+    def prevGIF(self):
+        self.searchOffset -= 1
+        self.search(oldSearch = True)
+        if self.searchOffset is 0: self.buttonPrev.config(state="disabled")
 
     def changeSpeed(self):
         self.frameRate = int(1/self.scaleSpeed.get() * 1000)

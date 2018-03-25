@@ -3,7 +3,9 @@ from tkinter import messagebox
 from urllib.request import urlopen
 import base64, sys, json
 
-API = "dc6zaTOxFJmzC"
+API = "dc6zaTOxFJmzC"      # Public beta Giphy API
+DEFAULT_SEARCH = "welcome" # Default search value
+DEFAULT_FPS = 15           # Default animation speed
 
 class App():
     def __init__(self):
@@ -14,12 +16,12 @@ class App():
         self.frames = []    # Array of imgData frames
         self.frameIndex = 0 # Current displayed frame index
         self.frameSize = 0  # Size of frames
-        self.frameRate = int(1/30 * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
+        self.frameRate = int(1/DEFAULT_FPS * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
 
-        self.searchText = ""  # Current GIF search
+        self.searchText = DEFAULT_SEARCH  # Current GIF search
         self.searchOffset = 0 # Current GIF offset
 
-        self.stopFlag = False # Flag for stopping the url loop
+        self.stopFlag = False # Flag for stopping the GIF animation loop
 
         # ----- TKINTER WIDGETS -----
         # Canvas to hold the GIF
@@ -54,6 +56,11 @@ class App():
         self.scaleSpeed.grid  (row = 3, column = 1, padx = 5, pady = 5, sticky="nw")
         self.buttonSpeed.grid (row = 3, column = 2, padx = 5, pady = 5, sticky="w")
 
+        # ----- DEFAULT RUN -----
+        # self.entrySearch.insert('end', DEFAULT_SEARCH)
+        self.scaleSpeed.set(DEFAULT_FPS)
+        self.search(DEFAULT_SEARCH)
+
     # Set the image data from the given URL
     def setImgFromURL(self, url):
         # Open the given URL into a data string
@@ -63,7 +70,9 @@ class App():
 
     # Set the frame array using the data from imgData
     def createFramesArray(self):
+        prevFlag = self.stopFlag # Store temp flag variable
         self.stopFlag = True # Stop gif looping if necessary
+
         print ("Getting file frames...")
         self.frames = [] # Reset frames variables
         index = 0  # Current frame index
@@ -91,7 +100,8 @@ class App():
         # Reset gif looping variables
         self.frameSize = len(self.frames)
         self.frameIndex = 0
-        self.stopFlag = False
+        self.stopFlag = not prevFlag # Set to opposite of previous mode
+        self.toggleLoop()            # Toggle to reset back to previous mode
 
     # Update the image on the canvas with the next frame
     def updateImage(self):
@@ -149,8 +159,13 @@ class App():
         urlData = urlopen(url).read()
         jsonData = json.loads(urlData)
 
-        urlGif = jsonData["data"][0]["images"]["original"]["url"]
-        self.changeURL(urlGif)
+        # Error out with message to user if no data was found in the search
+        if len(jsonData["data"]) is 0:
+            self.displayMessage("ERROR", "Found no gifs under that search.", 'error')
+            return
+        else:
+            urlGif = jsonData["data"][0]["images"]["original"]["url"]
+            self.changeURL(urlGif)
 
     def nextGIF(self):
         self.searchOffset += 1
@@ -182,5 +197,4 @@ class App():
 testURL = "https://media2.giphy.com/media/57Y0HrGWcu4WYvc6vE/giphy.gif"
 
 ourApp = App()
-ourApp.loadImage(testURL)
 ourApp.run()

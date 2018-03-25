@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
-import base64
 from urllib.request import urlopen
-import sys
+import base64, sys, json
+
+API = "dc6zaTOxFJmzC"
 
 class App():
     def __init__(self):
@@ -18,20 +19,31 @@ class App():
         # TKinter canvas to hold image
         self.canvas = tk.Canvas(self.root, bg="white", relief="raised")
         self.canvas.grid(row = 0, column = 3, rowspan = 1000, padx = 5, pady = 5)
-        # self.canvas.pack(side='right', fill='both', expand='yes')
 
         self.buttonPlay = tk.Button(self.root, text = "Pause GIF", command=self.toggleLoop)
         self.buttonPlay.grid(row = 0, column = 0, columnspan = 3, sticky="nw", padx = 5, pady = 5)
-        # self.buttonPlay.pack(side='left')
 
-        self.labelURL = tk.Label(self.root, text="Image URL:")
-        self.labelURL.grid(row = 1, column = 0, sticky="nw", padx = 5, pady = 5)
+        self.labelSearch = tk.Label(self.root, text="Search Giphy:")
+        self.labelSearch.grid(row = 1, column = 0, sticky="nw", padx = 5, pady = 5)
 
-        self.entryURL = tk.Entry(self.root)
-        self.entryURL.grid(row = 1, column = 1, sticky="nw", padx = 5, pady = 5)
+        self.entrySearch = tk.Entry(self.root)
+        self.entrySearch.grid(row = 1, column = 1, sticky="nw", padx = 5, pady = 5)
 
-        self.buttonURL = tk.Button(self.root, text = "Submit", command=self.changeURL)
-        self.buttonURL.grid(row = 1, column = 2, sticky="nw", padx = 5, pady = 5)
+        self.buttonSearch = tk.Button(self.root, text = "Submit", command=self.search)
+        self.buttonSearch.grid(row = 1, column = 2, sticky="nw", padx = 5, pady = 5)
+
+        self.searchOffset = 0
+
+        # TODO: Button next and previous
+
+        self.labelSpeed = tk.Label(self.root, text = "GIF Speed (fps):")
+        self.labelSpeed.grid(row = 2, column = 0, sticky="w")
+
+        self.scaleSpeed = tk.Scale(self.root, from_ = 1, to = 120, orient = "horizontal")
+        self.scaleSpeed.grid(row = 2, column = 1, sticky = "nw")
+
+        self.buttonSpeed = tk.Button(self.root, text = "Submit", command = self.changeSpeed)
+        self.buttonSpeed.grid(row = 2, column = 2, sticky = "w")
 
         self.stopFlag = False # Flag for stopping the url loop
 
@@ -112,13 +124,25 @@ class App():
         # Start the animation again if necessary
         if not self.stopFlag: self.updateImage()
 
-    def changeURL(self):
+    def changeURL(self, url):
         messageTitle = "GIF Submitted"
         messageContents = "We will now load your new GIF. This may take a few seconds, and your program may become unresponsive."
         self.displayMessage(messageTitle, messageContents, 'info')
 
-        url = self.entryURL.get()
         self.loadImage(url)
+
+    def search(self):
+        global API
+        search = self.entrySearch.get().replace(" ", "+")
+        url = "http://api.giphy.com/v1/gifs/search?q="+search+"&api_key="+API+"&limit=1&offset="+str(self.searchOffset)
+        urlData = urlopen(url).read()
+        jsonData = json.loads(urlData)
+
+        urlGif = jsonData["data"][0]["images"]["original"]["url"]
+        self.changeURL(urlGif)
+
+    def changeSpeed(self):
+        self.frameRate = int(1/self.scaleSpeed.get() * 1000)
 
     # ----- ABSTRACTION -----
 

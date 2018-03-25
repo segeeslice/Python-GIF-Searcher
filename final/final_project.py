@@ -56,11 +56,6 @@ class App():
         self.scaleSpeed.grid  (row = 3, column = 1, padx = 5, pady = 5, sticky="nw")
         self.buttonSpeed.grid (row = 3, column = 2, padx = 5, pady = 5, sticky="w")
 
-        # ----- DEFAULT RUN -----
-        # self.entrySearch.insert('end', DEFAULT_SEARCH)
-        self.scaleSpeed.set(DEFAULT_FPS)
-        self.search(DEFAULT_SEARCH)
-
     # Set the image data from the given URL
     def setImgFromURL(self, url):
         # Open the given URL into a data string
@@ -70,9 +65,6 @@ class App():
 
     # Set the frame array using the data from imgData
     def createFramesArray(self):
-        prevFlag = self.stopFlag # Store temp flag variable
-        self.stopFlag = True # Stop gif looping if necessary
-
         print ("Getting file frames...")
         self.frames = [] # Reset frames variables
         index = 0  # Current frame index
@@ -100,8 +92,10 @@ class App():
         # Reset gif looping variables
         self.frameSize = len(self.frames)
         self.frameIndex = 0
-        self.stopFlag = not prevFlag # Set to opposite of previous mode
-        self.toggleLoop()            # Toggle to reset back to previous mode
+
+        # Restart loop
+        self.stopFlag = False
+        self.updateImage()
 
     # Update the image on the canvas with the next frame
     def updateImage(self):
@@ -141,13 +135,6 @@ class App():
         # Start the animation again if necessary
         if not self.stopFlag: self.updateImage()
 
-    def changeURL(self, url):
-        messageTitle = "GIF Submitted"
-        messageContents = "We will now load your new GIF. This may take a few seconds, and your program may become unresponsive."
-        self.displayMessage(messageTitle, messageContents, 'info')
-
-        self.loadImage(url)
-
     def search(self, oldSearch = False):
         global API
 
@@ -165,7 +152,7 @@ class App():
             return
         else:
             urlGif = jsonData["data"][0]["images"]["original"]["url"]
-            self.changeURL(urlGif)
+            self.loadImage(urlGif)
 
     def nextGIF(self):
         self.searchOffset += 1
@@ -185,13 +172,24 @@ class App():
     # Load image to app given a url
     def loadImage(self, url):
         self.setImgFromURL(url)
-        self.createFramesArray()
+        # Stop current image loop
+        self.stopFlag = True
+        # Wait until loop is done and create new frame array
+        # Loop is started again within createFramesArray
+        self.root.after(self.frameRate, self.createFramesArray)
 
     # Run the application
     def run(self):
-        self.root.after(500, self.updateImage)
-        self.root.mainloop()
+        # Set default values in widgets
+        self.entrySearch.insert('end', DEFAULT_SEARCH)
+        self.scaleSpeed.set(DEFAULT_FPS)
 
+        # Do default search
+        # Uses inserted default search from above
+        self.search()
+
+        # Animate the image and run the program
+        self.root.mainloop()
 
 # Run the app
 testURL = "https://media2.giphy.com/media/57Y0HrGWcu4WYvc6vE/giphy.gif"

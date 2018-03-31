@@ -4,22 +4,24 @@ from urllib.request import urlopen
 import base64, sys, json
 
 API = "dc6zaTOxFJmzC"      # Public beta Giphy API
-DEFAULT_SEARCH = "welcome" # Default search value
+DEFAULT_SEARCH = "Cats"    # Default search value
 DEFAULT_FPS = 15           # Default animation speed
 
-class App():
+class GifSearcher():
     def __init__(self):
         self.root = tk.Tk() # Base Tkinter object
         self.root.title("The Python GIF Searcher")
         self.imgData = ""   # Base 64 gif data for displaying
 
-        self.frames = []    # Array of imgData frames
+        self.frames = []    # Array of all imgData frames
         self.frameIndex = 0 # Current displayed frame index
-        self.frameSize = 0  # Size of frames
+        self.frameLen = 0   # Number of frames in the current GIF
         self.frameRate = int(1/DEFAULT_FPS * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
 
         self.searchText = DEFAULT_SEARCH  # Current GIF search
+        self.searchData = [] # Json data gathered from GIF search
         self.searchOffset = 0 # Current GIF offset
+        self.searchLen = 0 # Current GIF search number of GIFs found
 
         self.stopFlag = False # Flag for stopping the GIF animation loop
 
@@ -35,11 +37,11 @@ class App():
         self.entrySearch = tk.Entry(self.root)
         self.buttonSearch = tk.Button(self.root, text = "Submit", command=self.search)
 
-        # Look at different GIFs in search list
+        # Buttons to look at different GIFs in search list
         self.buttonPrev = tk.Button(self.root, text="Previous GIF", command=self.prevGIF, state="disabled")
         self.buttonNext = tk.Button(self.root, text="Next GIF", command=self.nextGIF)
 
-        # Speed slider with label and submission button
+        # Animation speed slider with label and submission button
         self.labelSpeed = tk.Label(self.root, text = "GIF Speed (fps):")
         self.scaleSpeed = tk.Scale(self.root, from_ = 1, to = 120, orient = "horizontal")
         self.buttonSpeed = tk.Button(self.root, text = "Submit", command = self.changeSpeed)
@@ -64,38 +66,26 @@ class App():
         self.imgData = base64.encodestring(image_string)
 
     # Set the frame array using the data from imgData
+    # NOTE: frame size and image data must be set prior
     def createFramesArray(self):
         print ("Getting file frames...")
         self.frames = [] # Reset frames variables
         index = 0  # Current frame index
 
-        # Create an array of frames of a gif
-        # Only exits when reaches end of frames (raises exception)
-        while True:
-            try:
-                # Get this gif index's frame
-                self.frames.append(tk.PhotoImage(data=self.imgData, format="gif -index " + str(index)))
-                index += 1
-            except tk._tkinter.TclError as e:
-                # This exception is expected at end of file
-                print("Reached end of frames")
-                break
-            except:
-                lastError = sys.exc_info()[0]
-                print("Unexpected error: ", lastError)
-                break
+        # Create an array of frames of a gif using preset image data and frame size
+        for i in range(0, self.frameLen):
+            self.frames.append(tk.PhotoImage(data=self.imgData, format = "gif -index " + str(i)))
 
         # Change canvas size to be the size of this gif
         w, h = self.frames[0].width(), self.frames[0].height()
         self.canvas.config(width = w, height = h)
 
-        # Reset gif looping variables
-        self.frameSize = len(self.frames)
+        # Reset frame index for gif looping
         self.frameIndex = 0
 
         # Restart loop
         self.stopFlag = False
-        self.updateImage()
+        self.root.after(self.frameRate, self.updateImage)
 
     # Update the image on the canvas with the next frame
     def updateImage(self):
@@ -106,8 +96,8 @@ class App():
         # Layers frames on top of each other
         self.canvas.create_image(0, 0, image=self.frames[self.frameIndex], anchor='nw')
 
-        # Increment frame index and call this again after increment
-        self.frameIndex = self.frameIndex + 1 if self.frameIndex < self.frameSize-1 else 0
+        # Cycle frame index and call this again after increment
+        self.frameIndex = (self.frameIndex + 1) % self.frameLen
         self.root.after(self.frameRate, self.updateImage)
 
     # Display a dialog window containing given information
@@ -135,37 +125,67 @@ class App():
         # Start the animation again if necessary
         if not self.stopFlag: self.updateImage()
 
-    def search(self, oldSearch = False):
+    # Search the Giphy server for an image
+    def search(self):
         global API
 
-        if not oldSearch:
-            self.searchText = self.entrySearch.get().replace(" ", "+")
-            self.searchOffset = 0
+        # Change search text to accomodate URL format and reset offset
+        self.searchText = self.entrySearch.get().replace(" ", "+")
 
-        url = "http://api.giphy.com/v1/gifs/search?q="+self.searchText+"&api_key="+API+"&limit=1&offset="+str(self.searchOffset)
+        # Get the data given the search text
+        url = "http://api.giphy.com/v1/gifs/search?q="+self.searchText+"&api_key="+API+"&offset="+str(self.searchOffset)
         urlData = urlopen(url).read()
-        jsonData = json.loads(urlData)
+        self.searchData = json.loads(urlData)["data"]
 
-        # Error out with message to user if no data was found in the search
-        if len(jsonData["data"]) is 0:
+        # Get the number of GIFs found under this search
+        self.searchLen = len(self.searchData)
+
+        # Handle error if no data was found under that search
+        if self.searchLen is 0:
             self.displayMessage("ERROR", "Found no gifs under that search.", 'error')
-            return
+            self.stopFlag = True;
+            self.root.after(self.frameRate, self.clearGIF)
+
+            self.buttonPrev.config(state="disabled")
+            self.buttonNext.config(state="disabled")
+
         else:
-            urlGif = jsonData["data"][0]["images"]["original"]["url"]
-            self.loadImage(urlGif)
+            self.changeSearch(0) # Change the GIF to display the first item in the search list
 
     def nextGIF(self):
-        self.searchOffset += 1
-        self.search(oldSearch = True)
-        self.buttonPrev.config(state="normal")
+        self.changeSearch(self.searchOffset + 1)
 
     def prevGIF(self):
-        self.searchOffset -= 1
-        self.search(oldSearch = True)
+        self.changeSearch(self.searchOffset - 1)
+
+    # Change a searched GIF to a new offset
+    def changeSearch(self, offset):
+        self.searchOffset = offset
+        self.frameLen = int(self.searchData[offset]["images"]["original"]["frames"])
+
+        # Current URL we will load
+        # "downsized_medium" keyword prevents GIFs from getting too large, but
+        # still maintains most smaller images to be their original size
+        url = self.searchData[offset]["images"]["downsized_medium"]["url"]
+        self.loadImage(url)
+
+        # Change next and previous buttons to be disabled if necessary
         if self.searchOffset is 0: self.buttonPrev.config(state="disabled")
+        else: self.buttonPrev.config(state="normal")
+
+        if self.searchOffset >= (self.searchLen-1): self.buttonNext.config(state="disabled")
+        else: self.buttonNext.config(state="normal")
 
     def changeSpeed(self):
         self.frameRate = int(1/self.scaleSpeed.get() * 1000)
+
+    def clearGIF(self):
+        self.imgData = ""
+        self.frames = []
+        self.frameIndex = 0
+        self.frameLen = 0
+        self.canvas.delete("all")
+        self.canvas.config(width = 0, height = 0)
 
     # ----- ABSTRACTION -----
 
@@ -174,6 +194,7 @@ class App():
         self.setImgFromURL(url)
         # Stop current image loop
         self.stopFlag = True
+
         # Wait until loop is done and create new frame array
         # Loop is started again within createFramesArray
         self.root.after(self.frameRate, self.createFramesArray)
@@ -191,8 +212,6 @@ class App():
         # Animate the image and run the program
         self.root.mainloop()
 
-# Run the app
-testURL = "https://media2.giphy.com/media/57Y0HrGWcu4WYvc6vE/giphy.gif"
 
-ourApp = App()
-ourApp.run()
+app = GifSearcher()
+app.run()

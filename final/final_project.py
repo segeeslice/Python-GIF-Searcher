@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox # Not imported by default
 from urllib.request import urlopen
 import base64, sys, json
 
@@ -46,17 +46,23 @@ class GifSearcher():
         self.scaleSpeed = tk.Scale(self.root, from_ = 1, to = 120, orient = "horizontal")
         self.buttonSpeed = tk.Button(self.root, text = "Submit", command = self.changeSpeed)
 
+        # Section labels
+        self.labelSection1 = tk.Label(self.root, text="GIF Searching", font=("Segoi UI", 14))
+        self.labelSection2 = tk.Label(self.root, text="GIF Modification", font=("Segoi UI", 14))
+
         # ----- GRID SETTINGS -----
-        self.canvas.grid      (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000)
-        self.buttonPlay.grid  (row = 0, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.labelSearch.grid (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.entrySearch.grid (row = 1, column = 1, padx = 5, pady = 5, sticky="nw")
-        self.buttonSearch.grid(row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
-        self.buttonPrev.grid  (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
-        self.buttonNext.grid  (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
-        self.labelSpeed.grid  (row = 3, column = 0, padx = 5, pady = 5, sticky="w")
-        self.scaleSpeed.grid  (row = 3, column = 1, padx = 5, pady = 5, sticky="nw")
-        self.buttonSpeed.grid (row = 3, column = 2, padx = 5, pady = 5, sticky="w")
+        self.canvas.grid       (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000)
+        self.labelSection1.grid(row = 0, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
+        self.labelSearch.grid  (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.entrySearch.grid  (row = 1, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSearch.grid (row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
+        self.buttonPrev.grid   (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
+        self.buttonNext.grid   (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
+        self.labelSection2.grid(row = 3, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
+        self.buttonPlay.grid   (row = 4, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.labelSpeed.grid   (row = 5, column = 0, padx = 5, pady = 5, sticky="w")
+        self.scaleSpeed.grid   (row = 5, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSpeed.grid  (row = 5, column = 2, padx = 5, pady = 5, sticky="w")
 
     # Set the image data from the given URL
     def setImgFromURL(self, url):
@@ -204,6 +210,10 @@ class GifSearcher():
         # Set default values in widgets
         self.entrySearch.insert('end', DEFAULT_SEARCH)
         self.scaleSpeed.set(DEFAULT_FPS)
+
+        # Display introductory message
+        self.displayMessage(mode='info', title='Welcome!',
+            contents='Welcome to the Python GIF searcher!\n\nI went ahead and started you out with a quality search. New GIF searches may take a bit of time to load, and the program may become unresponsive.\n\nBe patient, and enjoy!')
 
         # Do default search
         # Uses inserted default search from above

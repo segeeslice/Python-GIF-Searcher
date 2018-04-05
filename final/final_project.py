@@ -3,7 +3,7 @@ from tkinter import messagebox # Not imported by default
 from urllib.request import urlopen
 import base64, sys, json
 
-API = "dc6zaTOxFJmzC"      # Public beta Giphy API
+API = "QOYhQaZkov0vnRMSRQ2412TPmESK5tmS" # Our public beta Giphy API
 DEFAULT_SEARCH = "Cats"    # Default search value
 DEFAULT_FPS = 15           # Default animation speed
 
@@ -50,19 +50,23 @@ class GifSearcher():
         self.labelSection1 = tk.Label(self.root, text="GIF Searching", font=("Segoi UI", 14))
         self.labelSection2 = tk.Label(self.root, text="GIF Modification", font=("Segoi UI", 14))
 
+        # Random GIF search button
+        self.buttonRandom = tk.Button(self.root, text="~ Get Random GIF ~", command=self.randomSearch)
+
         # ----- GRID SETTINGS -----
-        self.canvas.grid       (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000)
+        self.canvas.grid       (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000, sticky="nw")
         self.labelSection1.grid(row = 0, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
         self.labelSearch.grid  (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
         self.entrySearch.grid  (row = 1, column = 1, padx = 5, pady = 5, sticky="nwes")
         self.buttonSearch.grid (row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
         self.buttonPrev.grid   (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
         self.buttonNext.grid   (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
-        self.labelSection2.grid(row = 3, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
-        self.buttonPlay.grid   (row = 4, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.labelSpeed.grid   (row = 5, column = 0, padx = 5, pady = 5, sticky="w")
-        self.scaleSpeed.grid   (row = 5, column = 1, padx = 5, pady = 5, sticky="nwes")
-        self.buttonSpeed.grid  (row = 5, column = 2, padx = 5, pady = 5, sticky="w")
+        self.buttonRandom.grid (row = 3, column = 0, padx = 5, pady = 5, columnspan = 3, sticky="nwes")
+        self.labelSection2.grid(row = 4, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
+        self.buttonPlay.grid   (row = 5, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.labelSpeed.grid   (row = 6, column = 0, padx = 5, pady = 5, sticky="w")
+        self.scaleSpeed.grid   (row = 6, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSpeed.grid  (row = 6, column = 2, padx = 5, pady = 5, sticky="w")
 
     # Set the image data from the given URL
     def setImgFromURL(self, url):
@@ -139,7 +143,7 @@ class GifSearcher():
         self.searchText = self.entrySearch.get().replace(" ", "+")
 
         # Get the data given the search text
-        url = "http://api.giphy.com/v1/gifs/search?q="+self.searchText+"&api_key="+API+"&offset="+str(self.searchOffset)
+        url = "http://api.giphy.com/v1/gifs/search?q="+self.searchText+"&api_key="+API
         urlData = urlopen(url).read()
         self.searchData = json.loads(urlData)["data"]
 
@@ -181,6 +185,36 @@ class GifSearcher():
 
         if self.searchOffset >= (self.searchLen-1): self.buttonNext.config(state="disabled")
         else: self.buttonNext.config(state="normal")
+
+    def randomSearch(self):
+        global API
+
+        # Get the data from GIPHY's random GIF searcher
+        # Can be expanded to use specified search or rating
+        url = "http://api.giphy.com/v1/gifs/random?api_key="+API
+        urlData = urlopen(url).read()
+
+        # Put data within array because this search only returns one item
+        # Keeping in array keeps it consistent with regular searches
+        self.searchData = [json.loads(urlData)["data"]]
+
+        # Get the number of GIFs found under this search
+        self.searchLen = len(self.searchData)
+
+        # Clear the search box since this is random
+        self.entrySearch.delete(0, 'end')
+
+        # Handle error if no data was found under that search
+        if self.searchLen is 0:
+            self.displayMessage("ERROR", "Found no gifs under that search.", 'error')
+            self.stopFlag = True;
+            self.root.after(self.frameRate, self.clearGIF)
+
+            self.buttonPrev.config(state="disabled")
+            self.buttonNext.config(state="disabled")
+
+        else:
+            self.changeSearch(0)
 
     def changeSpeed(self):
         self.frameRate = int(1/self.scaleSpeed.get() * 1000)

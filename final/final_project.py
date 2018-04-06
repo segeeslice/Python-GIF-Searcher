@@ -78,7 +78,7 @@ class GifSearcher():
     # Set the frame array using the data from imgData
     # NOTE: frame size and image data must be set prior
     def createFramesArray(self):
-        print ("Getting file frames...")
+        print ("Processing file frames...")
         self.frames = [] # Reset frames variables
         index = 0  # Current frame index
 
@@ -138,6 +138,7 @@ class GifSearcher():
     # Search the Giphy server for an image
     def search(self):
         global API
+        print("Fetching GIF data...")
 
         # Change search text to accomodate URL format and reset offset
         self.searchText = self.entrySearch.get().replace(" ", "+")
@@ -188,6 +189,7 @@ class GifSearcher():
 
     def randomSearch(self):
         global API
+        print("Fetching random GIF data...")
 
         # Get the data from GIPHY's random GIF searcher
         # Can be expanded to use specified search or rating

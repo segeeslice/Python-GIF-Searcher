@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox # Not imported by default
-from urllib.request import urlopen
+from urllib.request import urlopen, urlretrieve
 import base64, sys, json
 
 API = "QOYhQaZkov0vnRMSRQ2412TPmESK5tmS" # Our public beta Giphy API
@@ -53,20 +53,24 @@ class GifSearcher():
         # Random GIF search button
         self.buttonRandom = tk.Button(self.root, text="~ Get Random GIF ~", command=self.randomSearch)
 
+        # Download current GIF button
+        self.buttonDownload = tk.Button(self.root, text="Download GIF", command=self.downloadGIF)
+
         # ----- GRID SETTINGS -----
-        self.canvas.grid       (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000, sticky="nw")
-        self.labelSection1.grid(row = 0, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
-        self.labelSearch.grid  (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.entrySearch.grid  (row = 1, column = 1, padx = 5, pady = 5, sticky="nwes")
-        self.buttonSearch.grid (row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
-        self.buttonPrev.grid   (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
-        self.buttonNext.grid   (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
-        self.buttonRandom.grid (row = 3, column = 0, padx = 5, pady = 5, columnspan = 3, sticky="nwes")
-        self.labelSection2.grid(row = 4, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
-        self.buttonPlay.grid   (row = 5, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.labelSpeed.grid   (row = 6, column = 0, padx = 5, pady = 5, sticky="w")
-        self.scaleSpeed.grid   (row = 6, column = 1, padx = 5, pady = 5, sticky="nwes")
-        self.buttonSpeed.grid  (row = 6, column = 2, padx = 5, pady = 5, sticky="w")
+        self.canvas.grid        (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000, sticky="nw")
+        self.labelSection1.grid (row = 0, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
+        self.labelSearch.grid   (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.entrySearch.grid   (row = 1, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSearch.grid  (row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
+        self.buttonPrev.grid    (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
+        self.buttonNext.grid    (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
+        self.buttonRandom.grid  (row = 3, column = 0, padx = 5, pady = 5, columnspan = 3, sticky="nwes")
+        self.labelSection2.grid (row = 4, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
+        self.buttonPlay.grid    (row = 5, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.buttonDownload.grid(row = 5, column = 1, padx = 5, pady = 5, sticky="nw")
+        self.labelSpeed.grid    (row = 6, column = 0, padx = 5, pady = 5, sticky="w")
+        self.scaleSpeed.grid    (row = 6, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSpeed.grid   (row = 6, column = 2, padx = 5, pady = 5, sticky="w")
 
     # Set the image data from the given URL
     def setImgFromURL(self, url):
@@ -220,6 +224,21 @@ class GifSearcher():
 
     def changeSpeed(self):
         self.frameRate = int(1/self.scaleSpeed.get() * 1000)
+
+    def downloadGIF(self):
+        print("Downloading GIF...")
+
+        # Get the URL and title of the currently displayed image
+        # Uses the original instead of the displayed, downsized one
+        url = self.searchData[self.searchOffset]["images"]["original"]["url"]
+        filename = self.searchData[self.searchOffset]["title"] + ".gif"
+
+        # Download the GIF to the program's file location using its GIPHY title
+        # If a file with that name already exists, it simply overwrites it
+        # This shouldn't be too detrimental, but could be revised if necessary
+        urlretrieve(url, filename)
+        self.displayMessage(title="Success!", mode="info",
+            contents="GIF successfully downloaded to '{}' in the program's file folder.".format(filename))
 
     def clearGIF(self):
         self.imgData = ""

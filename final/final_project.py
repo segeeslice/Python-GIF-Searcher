@@ -49,6 +49,9 @@ class GifSearcher():
         self.labelSection1 = tk.Label(self.root, text="GIF Searching", font=("Segoi UI", 14))
         self.labelSection2 = tk.Label(self.root, text="GIF Modification", font=("Segoi UI", 14))
 
+        # Trending GIFs search button
+        self.buttonTrending = tk.Button(self.root, text="~ Get Trending GIFs ~", command=self.trendingSearch)
+
         # Random GIF search button
         self.buttonRandom = tk.Button(self.root, text="~ Get Random GIF ~", command=self.randomSearch)
 
@@ -58,18 +61,19 @@ class GifSearcher():
         # ----- GRID SETTINGS -----
         self.canvas.grid        (row = 0, column = 3, padx = 5, pady = 5, rowspan = 1000, sticky="nw")
         self.labelSection1.grid (row = 0, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
-        self.labelSearch.grid   (row = 1, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.entrySearch.grid   (row = 1, column = 1, padx = 5, pady = 5, sticky="nwes")
-        self.buttonSearch.grid  (row = 1, column = 2, padx = 5, pady = 5, sticky="nw")
-        self.buttonPrev.grid    (row = 2, column = 0, padx = 5, pady = 5, sticky="w")
-        self.buttonNext.grid    (row = 2, column = 1, padx = 5, pady = 5, sticky="w")
-        self.buttonRandom.grid  (row = 3, column = 0, padx = 5, pady = 5, columnspan = 3, sticky="nwes")
-        self.labelSection2.grid (row = 4, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
-        self.buttonPlay.grid    (row = 5, column = 0, padx = 5, pady = 5, sticky="nw")
-        self.buttonDownload.grid(row = 5, column = 1, padx = 5, pady = 5, sticky="nw")
-        self.labelSpeed.grid    (row = 6, column = 0, padx = 5, pady = 5, sticky="w")
-        self.scaleSpeed.grid    (row = 6, column = 1, padx = 5, pady = 5, sticky="nwes")
-        self.buttonSpeed.grid   (row = 6, column = 2, padx = 5, pady = 5, sticky="w")
+        self.buttonPrev.grid    (row = 1, column = 0, padx = 5, pady = 5, sticky="w")
+        self.buttonNext.grid    (row = 1, column = 1, padx = 5, pady = 5, sticky="w")
+        self.labelSearch.grid   (row = 2, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.entrySearch.grid   (row = 2, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSearch.grid  (row = 2, column = 2, padx = 5, pady = 5, sticky="nw")
+        self.buttonTrending.grid(row = 3, column = 0, padx = 5, pady = 5, columnspan = 3, sticky="nwes")
+        self.buttonRandom.grid  (row = 4, column = 0, padx = 5, pady = 5, columnspan = 3, sticky="nwes")
+        self.labelSection2.grid (row = 5, column = 0, padx = 5, pady = 10, columnspan = 3, sticky="w")
+        self.buttonPlay.grid    (row = 6, column = 0, padx = 5, pady = 5, sticky="nw")
+        self.buttonDownload.grid(row = 6, column = 1, padx = 5, pady = 5, sticky="nw")
+        self.labelSpeed.grid    (row = 7, column = 0, padx = 5, pady = 5, sticky="w")
+        self.scaleSpeed.grid    (row = 7, column = 1, padx = 5, pady = 5, sticky="nwes")
+        self.buttonSpeed.grid   (row = 7, column = 2, padx = 5, pady = 5, sticky="w")
 
     # Set the image data from the given URL
     def setImgFromURL(self, url):
@@ -127,7 +131,6 @@ class GifSearcher():
 
     # Load searchData from giphy API using given mode
     # Modes are 'search', 'random', and 'trending'
-    # NOTE: Could move to additional GIPHY utility file
     def loadSearchData(self, mode):
         global API
         print("Fetching GIF data...")
@@ -135,23 +138,27 @@ class GifSearcher():
         base="http://api.giphy.com/v1/gifs/" # Base url
         endpoint = "" # Modal endpoint
 
-        # Generate GIPHY API endpoint depending on current mode
+        # Generate GIPHY API endpoint depending on given mode
+        endpoint = mode + "?api_key="+API
+
+        # Get and add search text to endpoint if search mode
         if mode is "search":
-            # Get and change search text to accomodate URL format
+            # Modify search to accomodate URL format
             searchText = self.entrySearch.get().replace(" ", "+")
-            endpoint = "search?q="+searchText+"&api_key="+API
+            endpoint += "&q=" + searchText
 
-        elif mode is "random":
-            endpoint = "random?api_key="+API
-
-        elif mode is "trending":
-            endpoint = "trending?api_key="+API
+        # If not search mode, clear search to indicate this
+        else:
+            self.entrySearch.delete(0, 'end')
 
         # Retrieve search data
-        # Converts search data to list in the case that we only retrieve one item
         url = base + endpoint
         urlData = urlopen(url).read()
-        self.searchData = list(json.loads(urlData)["data"])
+        self.searchData = json.loads(urlData)["data"]
+
+        # Convert search data to list in the case that we only retrieve one item
+        if type(self.searchData) != list:
+            self.searchData = [self.searchData]
 
         # Get the number of GIFs found under this search
         self.searchLen = len(self.searchData)
@@ -202,6 +209,9 @@ class GifSearcher():
     # Search given text
     def search(self):
         self.loadSearchData("search")
+
+    def trendingSearch(self):
+        self.loadSearchData("trending")
 
     # Get random GIF
     def randomSearch(self):

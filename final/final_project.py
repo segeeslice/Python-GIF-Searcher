@@ -18,7 +18,6 @@ class GifSearcher():
         self.frameLen = 0   # Number of frames in the current GIF
         self.frameRate = int(1/DEFAULT_FPS * 1000) # Delay between frames (ms). Must be int. Defaults to 30 fps
 
-        self.searchText = DEFAULT_SEARCH  # Current GIF search
         self.searchData = [] # Json data gathered from GIF search
         self.searchOffset = 0 # Current GIF offset
         self.searchLen = 0 # Current GIF search number of GIFs found
@@ -126,31 +125,33 @@ class GifSearcher():
         else:
             print("Could not display message of unknown type: " + mode)
 
-    # ----- WIDGET COMMANDS -----
-
-    def toggleLoop(self):
-        # Toggle stop flag to stop the GIF playing if necessary
-        self.stopFlag = not self.stopFlag
-
-        # Change button text depending on if the GIF is playing or not
-        buttonText = "Play GIF" if self.stopFlag else "Pause GIF"
-        self.buttonPlay.config(text = buttonText)
-
-        # Start the animation again if necessary
-        if not self.stopFlag: self.updateImage()
-
-    # Search the Giphy server for an image
-    def search(self):
+    # Load searchData from giphy API using given mode
+    # Modes are 'search', 'random', and 'trending'
+    # NOTE: Could move to additional GIPHY utility file
+    def loadSearchData(self, mode):
         global API
         print("Fetching GIF data...")
 
-        # Change search text to accomodate URL format and reset offset
-        self.searchText = self.entrySearch.get().replace(" ", "+")
+        base="http://api.giphy.com/v1/gifs/" # Base url
+        endpoint = "" # Modal endpoint
 
-        # Get the data given the search text
-        url = "http://api.giphy.com/v1/gifs/search?q="+self.searchText+"&api_key="+API
+        # Generate GIPHY API endpoint depending on current mode
+        if mode is "search":
+            # Get and change search text to accomodate URL format
+            searchText = self.entrySearch.get().replace(" ", "+")
+            endpoint = "search?q="+searchText+"&api_key="+API
+
+        elif mode is "random":
+            endpoint = "random?api_key="+API
+
+        elif mode is "trending":
+            endpoint = "trending?api_key="+API
+
+        # Retrieve search data
+        # Converts search data to list in the case that we only retrieve one item
+        url = base + endpoint
         urlData = urlopen(url).read()
-        self.searchData = json.loads(urlData)["data"]
+        self.searchData = list(json.loads(urlData)["data"])
 
         # Get the number of GIFs found under this search
         self.searchLen = len(self.searchData)
@@ -166,12 +167,6 @@ class GifSearcher():
 
         else:
             self.changeSearch(0) # Change the GIF to display the first item in the search list
-
-    def nextGIF(self):
-        self.changeSearch(self.searchOffset + 1)
-
-    def prevGIF(self):
-        self.changeSearch(self.searchOffset - 1)
 
     # Change a searched GIF to a new offset
     def changeSearch(self, offset):
@@ -191,40 +186,40 @@ class GifSearcher():
         if self.searchOffset >= (self.searchLen-1): self.buttonNext.config(state="disabled")
         else: self.buttonNext.config(state="normal")
 
+    # ----- WIDGET COMMANDS -----
+
+    def toggleLoop(self):
+        # Toggle stop flag to stop the GIF playing if necessary
+        self.stopFlag = not self.stopFlag
+
+        # Change button text depending on if the GIF is playing or not
+        buttonText = "Play GIF" if self.stopFlag else "Pause GIF"
+        self.buttonPlay.config(text = buttonText)
+
+        # Start the animation again if necessary
+        if not self.stopFlag: self.updateImage()
+
+    # Search given text
+    def search(self):
+        self.loadSearchData("search")
+
+    # Get random GIF
     def randomSearch(self):
-        global API
-        print("Fetching random GIF data...")
+        self.loadSearchData("random")
 
-        # Get the data from GIPHY's random GIF searcher
-        # Can be expanded to use specified search or rating
-        url = "http://api.giphy.com/v1/gifs/random?api_key="+API
-        urlData = urlopen(url).read()
+    # Get next GIF in search
+    def nextGIF(self):
+        self.changeSearch(self.searchOffset + 1)
 
-        # Put data within array because this search only returns one item
-        # Keeping in array keeps it consistent with regular searches
-        self.searchData = [json.loads(urlData)["data"]]
+    # Get previous GIF in search
+    def prevGIF(self):
+        self.changeSearch(self.searchOffset - 1)
 
-        # Get the number of GIFs found under this search
-        self.searchLen = len(self.searchData)
-
-        # Clear the search box since this is random
-        self.entrySearch.delete(0, 'end')
-
-        # Handle error if no data was found under that search
-        if self.searchLen is 0:
-            self.displayMessage("ERROR", "Found no gifs under that search.", 'error')
-            self.stopFlag = True;
-            self.root.after(self.frameRate, self.clearGIF)
-
-            self.buttonPrev.config(state="disabled")
-            self.buttonNext.config(state="disabled")
-
-        else:
-            self.changeSearch(0)
-
+    # Modify GIF animation speed
     def changeSpeed(self):
         self.frameRate = int(1/self.scaleSpeed.get() * 1000)
 
+    # Download a GIF to the local directory
     def downloadGIF(self):
         print("Downloading GIF...")
 
@@ -240,6 +235,7 @@ class GifSearcher():
         self.displayMessage(title="Success!", mode="info",
             contents="GIF successfully downloaded to '{}' in the program's file folder.".format(filename))
 
+    # Clear all GIF data
     def clearGIF(self):
         self.imgData = ""
         self.frames = []

@@ -26,7 +26,7 @@ class GifSearcher():
 
         # ----- TKINTER WIDGETS -----
         # Canvas to hold the GIF
-        self.canvas = tk.Canvas(self.root, bg="white", relief="raised")
+        self.canvas = tk.Canvas(self.root, bg="white", relief="raised", width = 0, height = 0)
 
         # Play / pause button
         self.buttonPlay = tk.Button(self.root, text = "Pause GIF", command=self.toggleLoop)
@@ -77,10 +77,17 @@ class GifSearcher():
 
     # Set the image data from the given URL
     def setImgFromURL(self, url):
-        # Open the given URL into a data string
-        image_string = urlopen(url).read()
-        # Parse the data string into base 64 for reading
-        self.imgData = base64.encodestring(image_string)
+        try:
+            # Open the given URL into a data string
+            image_string = urlopen(url).read()
+            # Parse the data string into base 64 for reading
+            self.imgData = base64.encodestring(image_string)
+
+        # Catch and handle any possible urllib errors
+        except:
+            errorString = "Unexpected error while fetching GIF data:\n" + str(sys.exc_info()[0])
+            self.displayMessage("ERROR", errorString, 'error')
+            self.handleError()
 
     # Set the frame array using the data from imgData
     # NOTE: frame size and image data must be set prior
@@ -90,8 +97,14 @@ class GifSearcher():
         index = 0  # Current frame index
 
         # Create an array of frames of a gif using preset image data and frame size
-        for i in range(0, self.frameLen):
-            self.frames.append(tk.PhotoImage(data=self.imgData, format = "gif -index " + str(i)))
+        try:
+            for i in range(0, self.frameLen):
+                self.frames.append(tk.PhotoImage(data=self.imgData, format = "gif -index " + str(i)))
+        except:
+            errorString = "Unexpected error while processing GIF:\n" + sys.exc_info()[0]
+            self.displayMessage("ERROR", str, 'error')
+            self.handleError()
+            return
 
         # Change canvas size to be the size of this gif
         w, h = self.frames[0].width(), self.frames[0].height()
@@ -152,9 +165,19 @@ class GifSearcher():
             self.entrySearch.delete(0, 'end')
 
         # Retrieve search data
-        url = base + endpoint
-        urlData = urlopen(url).read()
-        self.searchData = json.loads(urlData)["data"]
+        try:
+            url = base + endpoint
+            urlData = urlopen(url).read()
+            self.searchData = json.loads(urlData)["data"]
+
+        # Handle any urllib error and exit
+        # Done in this way to envelop multiple error possibilities
+        # (HTTP error, URL connection error, etc)
+        except:
+            errorString = "Unexpected error while fetching search data:\n" + str(sys.exc_info()[0])
+            self.displayMessage("ERROR", errorString, 'error')
+            self.handleError()
+            return
 
         # Convert search data to list in the case that we only retrieve one item
         if type(self.searchData) != list:
@@ -166,11 +189,7 @@ class GifSearcher():
         # Handle error if no data was found under that search
         if self.searchLen is 0:
             self.displayMessage("ERROR", "Found no gifs under that search.", 'error')
-            self.stopFlag = True;
-            self.root.after(self.frameRate, self.clearGIF)
-
-            self.buttonPrev.config(state="disabled")
-            self.buttonNext.config(state="disabled")
+            self.handleError()
 
         else:
             self.changeSearch(0) # Change the GIF to display the first item in the search list
@@ -192,6 +211,14 @@ class GifSearcher():
 
         if self.searchOffset >= (self.searchLen-1): self.buttonNext.config(state="disabled")
         else: self.buttonNext.config(state="normal")
+
+    # Clear all GIF data in case of error
+    def handleError(self):
+        self.stopFlag = True;
+        self.root.after(self.frameRate, self.clearGIF)
+
+        self.buttonPrev.config(state="disabled")
+        self.buttonNext.config(state="disabled")
 
     # ----- WIDGET COMMANDS -----
 
@@ -251,6 +278,7 @@ class GifSearcher():
         self.frames = []
         self.frameIndex = 0
         self.frameLen = 0
+        self.searchOffset = 0
         self.canvas.delete("all")
         self.canvas.config(width = 0, height = 0)
 
@@ -274,13 +302,9 @@ class GifSearcher():
 
         # Display introductory message
         self.displayMessage(mode='info', title='Welcome!',
-            contents='Welcome to the Python GIF searcher!\n\nI went ahead and started you out with a quality search. New GIF searches may take a bit of time to load, and the program may become unresponsive.\n\nBe patient, and enjoy!')
+            contents='Welcome to the Python GIF searcher!\n\nNew GIF searches may take a bit of time to load, and the program may become unresponsive.\n\nBe patient, and enjoy!')
 
-        # Do default search
-        # Uses inserted default search from above
-        self.search()
-
-        # Animate the image and run the program
+        # Run the program
         self.root.mainloop()
 
 
